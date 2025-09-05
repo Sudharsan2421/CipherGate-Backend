@@ -30,26 +30,27 @@ const settingsRoutes = require('./routes/settingsRoutes');
 const app = express();
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'https://tvtasks.netlify.app',
-      'https://client-seven-ruby.vercel.app',
-      'https://client-santhoshsekar999-gmailcoms-projects.vercel.app'
-    ];
-    const regex = /^http:\/\/.*\.localhost:3000$/; // Allow subdomains of localhost:3000
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'https://tvtasks.netlify.app',
+      'https://client-seven-ruby.vercel.app',
+      'https://client-santhoshsekar999-gmailcoms-projects.vercel.app',
+      'https://cipher-gate-frontend.vercel.app' // ** Added this line for the new Vercel URL **
+    ];
+    const regex = /^http:\/\/.*\.localhost:3000$/; // Allow subdomains of localhost:3000
 
-    if (!origin || allowedOrigins.includes(origin) || regex.test(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+    if (!origin || allowedOrigins.includes(origin) || regex.test(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 };
 
 // Apply CORS middleware
@@ -83,22 +84,22 @@ app.use('/api/settings', settingsRoutes);
 
 // Route for checking API status
 app.get('/', (req, res) => {
-  res.json({ message: 'Task Tracker API is running' });
+  res.json({ message: 'Task Tracker API is running' });
 });
 
 // Initialize schedulers and cron jobs
 if (process.env.NODE_ENV === 'production' || process.env.ENABLE_SCHEDULERS === 'true') {
-  console.log('🚀 Starting production schedulers...');
-  
-  // Initialize food request schedulers
-  const { initializeFoodRequestSchedulers } = require('./schedulers/foodRequestScheduler');
-  initializeFoodRequestSchedulers();
-  
-  // Initialize other cron jobs if they exist
-  const { startCronJobs } = require('./services/cronJobs');
-  startCronJobs();
+  console.log('🚀 Starting production schedulers...');
+  
+  // Initialize food request schedulers
+  const { initializeFoodRequestSchedulers } = require('./schedulers/foodRequestScheduler');
+  initializeFoodRequestSchedulers();
+  
+  // Initialize other cron jobs if they exist
+  const { startCronJobs } = require('./services/cronJobs');
+  startCronJobs();
 } else {
-  console.log('⚠️ Schedulers disabled. Set NODE_ENV=production or ENABLE_SCHEDULERS=true to enable');
+  console.log('⚠️ Schedulers disabled. Set NODE_ENV=production or ENABLE_SCHEDULERS=true to enable');
 }
 
 // Error handler (should be last)
@@ -106,7 +107,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🌟 Server running on port ${PORT}`);
-  console.log(`📧 Email service: ${process.env.EMAIL_USER ? 'Configured' : 'Not configured'}`);
-  console.log(`🗄️ Database: ${process.env.MONGO_URI ? 'Connected' : 'Not configured'}`);
+  console.log(`🌟 Server running on port ${PORT}`);
+  console.log(`📧 Email service: ${process.env.EMAIL_USER ? 'Configured' : 'Not configured'}`);
+  console.log(`🗄️ Database: ${process.env.MONGO_URI ? 'Connected' : 'Not configured'}`);
 });
