@@ -2,6 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+
 const connectDB = require('./config/db');
 const { errorHandler } = require('./middleware/errorMiddleware');
 
@@ -11,24 +14,19 @@ dotenv.config();
 // Connect to database
 connectDB();
 
-// Routes
-const authRoutes = require('./routes/authRoutes');
-const attendanceRoutes = require('./routes/attedanceRoutes');
-const workerRoutes = require('./routes/workerRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const taskRoutes = require('./routes/taskRoutes');
-const topicRoutes = require('./routes/topicRoutes');
-const commentRoutes = require('./routes/commentRoutes');
-const leaveRoutes = require('./routes/leaveRoutes');
-const columnRoutes = require('./routes/columnRoutes');
-const departmentRoutes = require('./routes/departmentRoutes');
-const foodRequestRoutes = require('./routes/foodRequestRoutes');
-const notificationRoutes = require('./routes/notificationRoutes');
-const salaryRoutes = require('./routes/salaryRoutes');
-const settingsRoutes = require('./routes/settingsRoutes');
-
 const app = express();
 
+// Multer setup
+const upload = multer();
+
+// Cloudinary config
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.CLOUD_API_KEY,
+  api_secret: process.env.CLOUD_API_SECRET,
+});
+
+// CORS setup
 const corsOptions = {
   origin: (origin, callback) => {
     const allowedOrigins = [
@@ -50,7 +48,7 @@ const corsOptions = {
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: true,
 };
 
 // Apply CORS middleware
@@ -68,24 +66,38 @@ app.use((req, res, next) => {
   next();
 });
 
-// Serve static files from uploads directory
+// Serve static files from uploads directory (old local storage – optional now)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ✅ Cloudinary Upload Route
+app.post('/api/upload-face', upload.single('file'), async (req, res) => {
+  try {
+    cloudinary.uploader
+      .upload_stream({ folder: 'faces' }, (error, result) => {
+        if (error) return res.status(500).json({ error });
+        res.json({ url: result.secure_url });
+      })
+      .end(req.file.buffer);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Mount routes
-app.use('/api/auth', authRoutes);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/workers', workerRoutes);
-app.use('/api/salary', salaryRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/tasks', taskRoutes);
-app.use('/api/topics', topicRoutes);
-app.use('/api/comments', commentRoutes);
-app.use('/api/leaves', leaveRoutes);
-app.use('/api/columns', columnRoutes);
-app.use('/api/departments', departmentRoutes);
-app.use('/api/food-requests', foodRequestRoutes);
-app.use('/api/notifications', notificationRoutes);
-app.use('/api/settings', settingsRoutes);
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/attendance', require('./routes/attedanceRoutes'));
+app.use('/api/workers', require('./routes/workerRoutes'));
+app.use('/api/salary', require('./routes/salaryRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
+app.use('/api/tasks', require('./routes/taskRoutes'));
+app.use('/api/topics', require('./routes/topicRoutes'));
+app.use('/api/comments', require('./routes/commentRoutes'));
+app.use('/api/leaves', require('./routes/leaveRoutes'));
+app.use('/api/columns', require('./routes/columnRoutes'));
+app.use('/api/departments', require('./routes/departmentRoutes'));
+app.use('/api/food-requests', require('./routes/foodRequestRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/settings', require('./routes/settingsRoutes'));
 
 // Route for checking API status
 app.get('/', (req, res) => {
@@ -96,11 +108,9 @@ app.get('/', (req, res) => {
 if (process.env.NODE_ENV === 'production' || process.env.ENABLE_SCHEDULERS === 'true') {
   console.log('🚀 Starting production schedulers...');
   
-  // Initialize food request schedulers
   const { initializeFoodRequestSchedulers } = require('./schedulers/foodRequestScheduler');
   initializeFoodRequestSchedulers();
   
-  // Initialize other cron jobs if they exist
   const { startCronJobs } = require('./services/cronJobs');
   startCronJobs();
 } else {
