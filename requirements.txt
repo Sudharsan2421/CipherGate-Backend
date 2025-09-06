@@ -1,1 +1,9 @@
+flask
+gunicorn
+pymongo
+cloudinary
+numpy
+pillow
 face-recognition
+face-recognition-models
+dlib-bin
